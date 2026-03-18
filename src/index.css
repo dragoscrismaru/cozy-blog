@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply min-h-screen bg-[#FAF3E0] text-[#3E2723] antialiased;
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "settings": {
+    "blogName": "My Cozy Space",
+    "tagline": "A warm corner for my thoughts",
+    "globalFont": "Lora",
+    "globalColors": {
+      "primary": "#5C4033",
+      "secondary": "#C4956A",
+      "background": "#FAF3E0",
+      "accent": "#D4A843"
+    }
+  },
+  "posts": [
+    {
+      "id": "0bec42c3-f53c-4c5e-9a69-f9c4c87a0640",
+      "title": "Welcome to My Cozy Space",
+      "slug": "welcome-to-my-cozy-space",
+      "status": "published",
+      "category": "thoughts",
+      "tags": [
+        "welcome"
+      ],
+      "excerpt": "A warm welcome and an invitation to slow down.",
+      "coverImage": null,
+      "content": {
+        "blocks": [
+          {
+            "id": "d918d57d-bdb3-4dba-8916-6658a4629789",
+            "type": "text",
+            "data": {
+              "html": "<p>Hello! This is my little corner of the internet — a place for slow thoughts and tender stories.</p>",
+              "alignment": "left"
+            }
+          },
+          {
+            "id": "49874da4-cd79-4d7b-98d5-80cf342dc5cc",
+            "type": "quote",
+            "data": {
+              "text": "Brew something warm, curl up, and stay for a while.",
+              "author": "— Me",
+              "style": "decorative-marks",
+              "backgroundColor": null
+            }
+          }
+        ]
+      },
+      "style": {
+        "backgroundColor": "#FAF3E0",
+        "accentColor": "#C4956A",
+        "fontFamily": "Lora",
+        "layout": "single-column",
+        "headerStyle": "static"
+      },
+      "createdAt": "2026-03-12T14:10:57.444Z",
+      "updatedAt": "2026-03-12T14:10:57.445Z"
+    }
+  ],
+  "pages": [],
+  "categories": [],
+  "media": []
+}
