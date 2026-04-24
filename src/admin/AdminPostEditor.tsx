@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useCozyStore } from '../store'
+import type { PostStyle } from '../store'
 import { BlockEditor } from './blocks/BlockEditor'
 import type { Block } from '../lib/types'
 import { useEffect, useState } from 'react'
@@ -11,7 +12,7 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
-const defaultStyle = {
+const defaultStyle: PostStyle = {
   backgroundColor: '#FAF3E0',
   accentColor: '#C4956A',
   fontFamily: 'Lora',

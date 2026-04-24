@@ -1,20 +1,47 @@
 # My Cozy Space
 
-Personal blog studio — 100% frontend, date în localStorage (JSON). Ready pentru Supabase/Strapi ulterior.
+Luxury blog studio cu editor admin si sync live prin Supabase.
 
 ## Run
 
 ```bash
-bun run dev
-# → http://localhost:4000
+npm run dev
 ```
 
-- **/** — homepage
-- **/admin** — dashboard
-- **/admin/posts** — lista posturi (seed: "Welcome to My Cozy Space")
-- **/admin/posts/new** — editor nou
+## Supabase setup
 
-Datele se salvează în `localStorage` (key: `my-cozy-space-state-v2`). Imagini = base64.
+1. Copy `.env.example` to `.env` and fill:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+2. Create table in Supabase SQL editor:
+
+```sql
+create table if not exists public.cozy_documents (
+  id text primary key,
+  type text not null,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists cozy_documents_set_updated_at on public.cozy_documents;
+create trigger cozy_documents_set_updated_at
+before update on public.cozy_documents
+for each row execute function public.set_updated_at();
+```
+
+3. Enable Realtime for `cozy_documents`.
+
+If Supabase vars are missing, app falls back to localStorage.
 
 ---
 

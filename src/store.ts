@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 import type { Block } from './lib/types'
+import {
+  fetchDocuments,
+  removeDocument,
+  subscribeToDocuments,
+  upsertDocument,
+} from './lib/content-sync'
 
 export interface PostStyle {
   backgroundColor: string
@@ -65,6 +71,10 @@ interface CozyState {
   pages: Page[]
   media: MediaItem[]
   settings: BlogSettings
+  isSyncing: boolean
+  syncError: string | null
+  initializeRemoteSync: () => Promise<void>
+  subscribeToLiveUpdates: () => () => void
   upsertPost: (post: Omit<Post, 'createdAt' | 'updatedAt'>) => void
   deletePost: (id: string) => void
   upsertPage: (page: Omit<Page, 'createdAt' | 'updatedAt'>) => void
@@ -178,8 +188,55 @@ function persist(
   }
 }
 
+function hydrateFromRemoteDocs(docs: Array<{ id: string; type: string; data: unknown }>) {
+  const state = loadState()
+  const posts = docs
+    .filter((d) => d.type === 'post')
+    .map((d) => d.data as Post)
+    .filter(Boolean)
+  const pages = docs
+    .filter((d) => d.type === 'page')
+    .map((d) => d.data as Page)
+    .filter(Boolean)
+  const media = docs
+    .filter((d) => d.type === 'media')
+    .map((d) => d.data as MediaItem)
+    .filter(Boolean)
+  const settingsDoc = docs.find((d) => d.id === 'settings')
+  return {
+    posts: posts.length ? posts : state.posts,
+    pages,
+    media,
+    settings: settingsDoc ? ({ ...defaultSettings, ...(settingsDoc.data as BlogSettings) }) : state.settings,
+  }
+}
+
 export const useCozyStore = create<CozyState>((set, get) => ({
   ...loadState(),
+  isSyncing: false,
+  syncError: null,
+
+  initializeRemoteSync: async () => {
+    set({ isSyncing: true, syncError: null })
+    try {
+      const docs = await fetchDocuments()
+      if (!docs) {
+        set({ isSyncing: false })
+        return
+      }
+      const next = hydrateFromRemoteDocs(docs)
+      persist(next.posts, next.pages, next.media, next.settings)
+      set({ ...next, isSyncing: false, syncError: null })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sync'
+      set({ isSyncing: false, syncError: message })
+    }
+  },
+
+  subscribeToLiveUpdates: () =>
+    subscribeToDocuments(() => {
+      void get().initializeRemoteSync()
+    }),
 
   upsertPost: (postInput) => {
     const now = new Date().toISOString()
@@ -196,6 +253,9 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(posts, state.pages, state.media, state.settings)
       return { ...state, posts }
     })
+    void upsertDocument({ id: `post:${post.id}`, type: 'post', data: post }).catch(() =>
+      set({ syncError: 'Could not save post to Supabase' })
+    )
   },
 
   deletePost: (id) => {
@@ -204,6 +264,9 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(posts, state.pages, state.media, state.settings)
       return { ...state, posts }
     })
+    void removeDocument(`post:${id}`).catch(() =>
+      set({ syncError: 'Could not delete post from Supabase' })
+    )
   },
 
   upsertPage: (pageInput) => {
@@ -221,6 +284,9 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(state.posts, pages, state.media, state.settings)
       return { ...state, pages }
     })
+    void upsertDocument({ id: `page:${page.id}`, type: 'page', data: page }).catch(() =>
+      set({ syncError: 'Could not save page to Supabase' })
+    )
   },
 
   deletePage: (id) => {
@@ -229,6 +295,9 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(state.posts, pages, state.media, state.settings)
       return { ...state, pages }
     })
+    void removeDocument(`page:${id}`).catch(() =>
+      set({ syncError: 'Could not delete page from Supabase' })
+    )
   },
 
   addMedia: (item) => {
@@ -237,6 +306,9 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(state.posts, state.pages, media, state.settings)
       return { ...state, media }
     })
+    void upsertDocument({ id: `media:${item.id}`, type: 'media', data: item }).catch(() =>
+      set({ syncError: 'Could not save media to Supabase' })
+    )
   },
 
   deleteMedia: (id) => {
@@ -245,6 +317,9 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(state.posts, state.pages, media, state.settings)
       return { ...state, media }
     })
+    void removeDocument(`media:${id}`).catch(() =>
+      set({ syncError: 'Could not delete media from Supabase' })
+    )
   },
 
   updateSettings: (patch) => {
@@ -253,5 +328,10 @@ export const useCozyStore = create<CozyState>((set, get) => ({
       persist(state.posts, state.pages, state.media, settings)
       return { ...state, settings }
     })
+    void upsertDocument({
+      id: 'settings',
+      type: 'settings',
+      data: { ...get().settings, ...patch },
+    }).catch(() => set({ syncError: 'Could not save settings to Supabase' }))
   },
 }))
