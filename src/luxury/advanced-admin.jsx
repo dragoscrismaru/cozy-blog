@@ -1,6 +1,5 @@
 import React from 'react'
-
-const useLux = () => window.useLux()
+import { useLux } from './shell'
 
 // AdvancedAdmin — tabbed settings drawer for Maison Noir
 export const AdvancedAdmin = () => {

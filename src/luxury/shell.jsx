@@ -1,6 +1,7 @@
 import React from 'react'
 import { AdvancedAdmin } from './advanced-admin'
 import { BgAnim, PatternLayer } from './bg-anim'
+import { fetchDocuments, upsertDocument, removeDocument } from '../lib/content-sync'
 
 // Luxury shared shell — extended: CSS vars, localStorage, background FX, advanced settings.
 const LuxuryCtx = React.createContext(null);
@@ -101,7 +102,21 @@ const pageFromLocation = () => {
 export const LuxuryProvider = ({ children }) => {
   const [settings, setSettings] = React.useState(loadSettings);
   const [posts, setPosts] = React.useState(SEED_POSTS);
+  const [postsReady, setPostsReady] = React.useState(false);
   const [page, setPage] = React.useState(pageFromLocation);
+
+  // Load posts from Supabase on mount; fall back to SEED_POSTS if unavailable
+  React.useEffect(() => {
+    fetchDocuments()
+      .then((docs) => {
+        if (!docs) return
+        const remote = docs.filter((d) => d.type === 'post').map((d) => d.data).filter(Boolean)
+        if (remote.length > 0) setPosts(remote)
+      })
+      .catch(() => {})
+      .finally(() => setPostsReady(true))
+  }, [])
+
   React.useEffect(() => {
     const onPopState = () => setPage(pageFromLocation())
     window.addEventListener('popstate', onPopState)
@@ -136,8 +151,18 @@ export const LuxuryProvider = ({ children }) => {
     try { const parsed = JSON.parse(text); setSettings(s => ({ ...s, ...parsed })); return true; } catch { return false; }
   };
 
-  const savePost = (p) => setPosts(ps => p.id ? ps.map(x => x.id === p.id ? p : x) : [...ps, { ...p, id: Date.now() }]);
-  const deletePost = (id) => setPosts(ps => ps.filter(p => p.id !== id));
+  const savePost = (p) => {
+    const saved = p.id ? p : { ...p, id: Date.now() }
+    setPosts(ps => ps.find(x => x.id === saved.id)
+      ? ps.map(x => x.id === saved.id ? saved : x)
+      : [...ps, saved]
+    )
+    void upsertDocument({ id: `lux-post:${saved.id}`, type: 'post', data: saved })
+  }
+  const deletePost = (id) => {
+    setPosts(ps => ps.filter(p => p.id !== id))
+    void removeDocument(`lux-post:${id}`)
+  }
   const go = (name, postId = null) => {
     let nextPath = '/'
     if (name === 'archive') nextPath = '/archive'
@@ -156,7 +181,7 @@ export const LuxuryProvider = ({ children }) => {
   return (
     <LuxuryCtx.Provider value={{
       settings, update, updateMany, reset, savePreset, loadPreset, deletePreset, exportJson, importJson,
-      posts, savePost, deletePost, page, go, transitionKey,
+      posts, postsReady, savePost, deletePost, page, go, transitionKey,
       adminOpen, setAdminOpen,
       bg: settings.bg, text: settings.text, rule, subtle,
       BUILTIN_PRESETS,
