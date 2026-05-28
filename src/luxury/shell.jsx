@@ -257,7 +257,7 @@ export const LuxShell = ({ children }) => {
         </footer>
       </div>
 
-      <button onClick={() => setAdminOpen(!adminOpen)} className="fixed top-6 right-6 z-50 px-5 py-2 border text-[10px] tracking-[0.3em] uppercase hover:bg-black/20 transition" style={{ borderColor: settings.accent, background: settings.bg, color: settings.accent, borderRadius: 'var(--lux-radius)' }}>
+      <button onClick={() => setAdminOpen(!adminOpen)} className="fixed bottom-6 right-6 z-50 px-5 py-2 border text-[10px] tracking-[0.3em] uppercase hover:bg-black/20 transition" style={{ borderColor: settings.accent, background: settings.bg, color: settings.accent, borderRadius: 'var(--lux-radius)' }}>
         {adminOpen ? 'Close' : 'Atelier'}
       </button>
 
